@@ -1,3 +1,101 @@
+### 2026.10.12
+
+#### @stdx/assert 0.1.2 (patch)
+
+- fix(assert): Added message as option argument to asserts, and added object
+  asserts
+
+#### @stdx/cli 0.1.3 (patch)
+
+- feat(cli): added global flags, examples and shared type helpers
+- feat(cli): added further options to command
+- feat(cli): added command
+- feat(cli): Added cli module with parseArgs
+- docs(cli): documented Node.js compatibility
+
+#### @stdx/collections 0.3.0 (minor)
+
+- feat(collections)!: fix DeferredStack release, add clear and abortable pop
+- feat(collections): add deferred stack
+- fix(collections): added release and remove callbacks
+
+#### @stdx/crypto 0.2.1 (minor)
+
+- feat(crypto)!: add HMAC and SCRAM, align module interfaces
+- fix(crypto): password verification
+- fix(crypto): Fixed errors due to changes in deno types
+- chore(crypto): change ts-ignore to ts-expect-error
+
+#### @stdx/database 0.3.0 (minor)
+
+- feat(database): add firstValues and firstRecord, and driver typed parameters
+- feat(database): added docs and examples
+- feat(database)!: refactored code
+- feat(database)!: refactored spec
+- feat(database)!: align the Postgres driver with the spec
+- feat(database)!: align the SQLite driver with the spec
+- feat(database)!: align the SQL spec and core with runtime APIs
+- feat(database): add Postgres driver
+- feat(database)!: add core driver classes, extend conformance suite, rewrite
+  SQLite driver
+- fix(database): implemented validation
+- docs(database): document the drivers and the runtime aligned API
+- docs(database): adjusted RFC according to discussion
+- docs(database): Moved the RFC
+- chore(database): removed postgres driver and cleaned up tests
+
+#### @stdx/encoding 0.1.2 (patch)
+
+- feat(encoding): add binary reader and writer
+
+#### @stdx/event 0.1.4 (patch)
+
+- feat(event): added docs and tests
+
+#### @stdx/ffi 0.1.3 (patch)
+
+- feat(ffi): added docs and tests
+- docs(ffi): documented Node.js compatibility with dlopen shim example
+
+#### @stdx/fs 0.1.3 (patch)
+
+- feat(fs): added docs and tests
+- docs(fs): documented Node.js compatibility
+
+#### @stdx/http 0.1.1 (patch)
+
+#### @stdx/json 0.1.2 (patch)
+
+- feat(json): Added JSON Schema
+- fix(json): Added exports and format types
+- chore(json): fix lint
+
+#### @stdx/lexer 0.1.1 (patch)
+
+#### @stdx/types 0.1.2 (patch)
+
+- feat(types): added new constructor type helper and added examples to existing
+  type helpers
+- feat(types): added type and improved documentation
+
+#### @stdx/validation 0.1.5 (patch)
+
+- feat(validation): added more helpers
+- feat(validation): refactor validation
+- feat(validation): added fluent validation api
+- feat(validation): Added tests and jsdoc - thanks AI
+- feat(validation): Implemented a basic validator implementing StandardSchemaV1,
+  StandardJSONSchemaV1 and JSONSchema
+- feat(validation): added validation namespace, and standard compliant validator
+- fix(validation): Improved docs and tests
+- chore(validation): Added jsdoc and improved readme - thanks AI
+
+#### @stdx/zip 0.1.3 (patch)
+
+- feat(zip): add zip and unzip for archives and directories
+- fix(zip): replace with std
+- docs(zip): documented Node.js compatibility
+
 ### 2026.10.07
 
 #### @stdx/assert 0.1.2 (patch)

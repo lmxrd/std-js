@@ -1,5 +1,5 @@
 {
-  "version": "0.1.2",
+  "version": "0.1.3",
   "name": "@stdx/cli",
   "description": "Helpers for building command line applications, extending @std/cli.",
   "exports": {
