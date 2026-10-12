@@ -1,5 +1,5 @@
 {
-  "version": "0.1.3",
+  "version": "0.1.4",
   "name": "@stdx/event",
   "description": "Extensions for events such as CustomEventTarget, extending @std/event.",
   "exports": {
