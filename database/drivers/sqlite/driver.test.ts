@@ -200,7 +200,7 @@ Deno.test("SqliteClient", async (t) => {
           new Uint8Array([1, 2]),
           undefined,
           true,
-          date as never,
+          date,
           null,
         ],
       ),

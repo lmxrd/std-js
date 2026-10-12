@@ -760,6 +760,16 @@ export interface ResultIterableContext<
    * Collect all rows as an array of records
    */
   toRecords(): Promise<R[]>;
+  /**
+   * The first row as an array of values, or `undefined` when there are no
+   * rows. Runs the query if it has not run yet, and consumes the result.
+   */
+  firstValues(): Promise<V | undefined>;
+  /**
+   * The first row as a record, or `undefined` when there are no rows. Runs
+   * the query if it has not run yet, and consumes the result.
+   */
+  firstRecord(): Promise<R | undefined>;
 }
 
 /**
@@ -899,7 +909,25 @@ export interface Queryable {
   /**
    * Query exactly one SQL statement, returning a lazy
    * {@linkcode ResultIterableContext}. The query runs when the result is
-   * consumed.
+   * consumed. The `R` type parameter determines the record type of the
+   * result, such as `query<User>(...)`: the records are of the given type,
+   * without validating the values against it.
+   *
+   * @example
+   * ```ts
+   * import { SqliteClient } from "@stdx/database/drivers/sqlite";
+   *
+   * interface User {
+   *   id: number;
+   *   name: string;
+   * }
+   *
+   * await using client = new SqliteClient(":memory:");
+   * await client.execute("CREATE TABLE users (id INTEGER, name TEXT)");
+   * await client.execute("INSERT INTO users VALUES (1, 'Alice')");
+   * const rows = await client.query<User>("SELECT * FROM users").toRecords();
+   * console.log(rows[0].name.toUpperCase()); // "ALICE"
+   * ```
    *
    * @param sql the SQL statement, as text or a {@linkcode SqlTemplate}
    * @param params the parameters to bind. Not allowed with a
@@ -907,11 +935,11 @@ export interface Queryable {
    * @param options the query options, merged with the client's
    * @returns the result of the query
    */
-  query(
+  query<R = Record<string, unknown>>(
     sql: Statement,
     params?: QueryParameters,
     options?: QueryOptions,
-  ): ResultIterableContext;
+  ): ResultIterableContext<unknown[], R>;
   /**
    * Execute a script of one or more SQL statements without parameters, such
    * as a migration.
@@ -1004,12 +1032,14 @@ export interface PreparedStatement extends AsyncDisposable {
     options?: QueryOptions,
   ): Promise<ExecuteResult>;
   /**
-   * Query the statement, returning a lazy result
+   * Query the statement, returning a lazy result. The `R` type parameter
+   * determines the record type of the result, such as
+   * `stmt.query<User>(...)`.
    */
-  query(
+  query<R = Record<string, unknown>>(
     params?: QueryParameters,
     options?: QueryOptions,
-  ): ResultIterableContext;
+  ): ResultIterableContext<unknown[], R>;
 }
 
 /**

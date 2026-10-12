@@ -106,6 +106,46 @@ Deno.test("createResultIterableContext", async (t) => {
     assertEquals(await ctx.columns(), ["a"]);
   });
 
+  await t.step("firstValues and firstRecord read the first row", async () => {
+    const { start, log } = source(["a"], [1], [2]);
+    const ctx = createResultIterableContext(start);
+    assertEquals(await ctx.firstValues(), [1]);
+    assertEquals(log, ["started", "read 1", "closed"]);
+    const { start: start2, log: log2 } = source(["a"], [1], [2]);
+    const ctx2 = createResultIterableContext(start2);
+    assertEquals(await ctx2.firstRecord(), { a: 1 });
+    assertEquals(log2, ["started", "read 1", "closed"]);
+  });
+
+  await t.step(
+    "firstValues and firstRecord are undefined without rows",
+    async () => {
+      const { start, log } = source(["a"]);
+      const ctx = createResultIterableContext(start);
+      assertEquals(await ctx.firstValues(), undefined);
+      assertEquals(log, ["started", "closed"]);
+      const { start: start2, log: log2 } = source(["a"]);
+      const ctx2 = createResultIterableContext(start2);
+      assertEquals(await ctx2.firstRecord(), undefined);
+      assertEquals(log2, ["started", "closed"]);
+    },
+  );
+
+  await t.step("firstValues and firstRecord consume the result", async () => {
+    const { start } = source(["a"], [1]);
+    const ctx = createResultIterableContext(start);
+    assertEquals(await ctx.firstValues(), [1]);
+    await assertRejects(() => ctx.firstValues(), QueryError, "consumed");
+    await assertRejects(() => ctx.firstRecord(), QueryError, "consumed");
+    await assertRejects(() => ctx.toValues(), QueryError, "consumed");
+    // The columns are still available.
+    assertEquals(await ctx.columns(), ["a"]);
+    const { start: start2 } = source(["a"], [1]);
+    const ctx2 = createResultIterableContext(start2);
+    assertEquals(await ctx2.firstRecord(), { a: 1 });
+    await assertRejects(() => ctx2.firstValues(), QueryError, "consumed");
+  });
+
   await t.step("stops the source when the iteration ends early", async () => {
     const { start, log } = source(["a"], [1], [2], [3]);
     for await (const _row of createResultIterableContext(start)) break;

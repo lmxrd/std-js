@@ -116,6 +116,33 @@ Deno.test("SqlClient queries", async (t) => {
     assertEquals(log(driver).at(-1), "query SELECT ? AS value");
   });
 
+  await t.step("types the records at the call site", async () => {
+    interface User {
+      id: number;
+      name: string;
+    }
+    await using c = client().client;
+    const rows = await c.query<User>(memorySql.query).toRecords();
+    assertEquals(rows.length, memorySql.count);
+    assertEquals(rows.map((row) => row.name.toUpperCase()), [
+      "ALICE",
+      "BOB",
+      "CHARLIE",
+    ]);
+    assertEquals(await c.query<User>(memorySql.query).firstRecord(), {
+      id: 1,
+      name: "Alice",
+    });
+    assertEquals(
+      await c.query<User>(memorySql.query).firstValues(),
+      [1, "Alice"],
+    );
+    assertEquals(
+      await c.query<User>(memorySql.emptyQuery).firstRecord(),
+      undefined,
+    );
+  });
+
   await t.step("caches prepared statements", async () => {
     const { client: c, driver } = client();
     await using _ = c;

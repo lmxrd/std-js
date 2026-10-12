@@ -190,6 +190,30 @@ export function createResultIterableContext(
     return values;
   }
 
+  async function firstRow<T>(
+    map: (row: ResultObject) => T,
+  ): Promise<T | undefined> {
+    assertUsable();
+    if (consumed) {
+      throw new QueryError(
+        "The result has already been consumed: a result can be iterated or collected once",
+      );
+    }
+    consumed = true;
+    const { columns, iterator, first } = await begin();
+    try {
+      if (first.done) return undefined;
+      const values = first.value;
+      return map({
+        values,
+        toRecord: () => getObjectFromRow({ columns, values }),
+      });
+    } finally {
+      // The remaining rows are not read, so the source is stopped.
+      if (!first.done) await iterator.return?.();
+    }
+  }
+
   return {
     [Symbol.asyncIterator]: rows,
     async [Symbol.asyncDispose](): Promise<void> {
@@ -208,5 +232,7 @@ export function createResultIterableContext(
     },
     toValues: () => collect((row) => row.values),
     toRecords: () => collect((row) => row.toRecord()),
+    firstValues: () => firstRow((row) => row.values),
+    firstRecord: () => firstRow((row) => row.toRecord()),
   };
 }
