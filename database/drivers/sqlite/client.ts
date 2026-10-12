@@ -2,6 +2,7 @@ import { type ClientOptions, SqlClient } from "../../sql/mod.ts";
 import {
   type SqliteConnectionOptions,
   SqliteDriver,
+  type SqliteQueryParameters,
   type SqliteTransactionOptions,
 } from "./driver.ts";
 
@@ -40,6 +41,10 @@ export interface SqliteClientOptions
  * connection is released. This keeps transactions isolated, and makes
  * `:memory:` databases behave like a single database.
  *
+ * The parameters of its query methods are typed as
+ * {@linkcode SqliteQueryParameters}: the standard parameter types, extended
+ * with `Date`s, which are bound as ISO 8601 strings.
+ *
  * @example
  * ```ts
  * import { SqliteClient } from "@stdx/database/drivers/sqlite";
@@ -52,7 +57,8 @@ export interface SqliteClientOptions
  * console.log(await client.query("SELECT * FROM users").toRecords());
  * ```
  */
-export class SqliteClient extends SqlClient<SqliteDriver, SqliteClientOptions> {
+export class SqliteClient
+  extends SqlClient<SqliteDriver, SqliteClientOptions, SqliteQueryParameters> {
   /**
    * Create a SQLite client.
    *

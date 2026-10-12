@@ -53,7 +53,7 @@ console.log(dump(buffer));
 | [cli](https://jsr.io/@stdx/cli)                 | The cli package contains a command framework and helpers for building command line applications                                |
 | [collections](https://jsr.io/@stdx/collections) | The collections package contains commonly used utilities and structures                                                        |
 | [crypto](https://jsr.io/@stdx/crypto)           | The crypto package contains utility for crypto, hashing, HMAC and SCRAM authentication                                         |
-| [database](https://jsr.io/@stdx/database)       | The database package contains interfaces and helpers for interacting with databases, and SQLite and Postgres drivers           |
+| [database](https://jsr.io/@stdx/database)       | The database package contains interfaces and helpers for interacting with databases, and a SQLite driver                       |
 | [encoding](https://jsr.io/@stdx/encoding)       | The encoding package contains utility for text and binary encoding                                                             |
 | [event](https://jsr.io/@stdx/event)             | The event package contains extensions for events                                                                               |
 | [ffi](https://jsr.io/@stdx/ffi)                 | The FFI package contains helpers when using FFI                                                                                |

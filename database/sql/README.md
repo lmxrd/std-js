@@ -80,8 +80,11 @@ The query methods are defined in [core.ts](./core.ts) (`Queryable`):
   other statements) and the `lastInsertId`, if the database reports it
 - `query(sql, params?, options?)`: Returns a lazy `ResultIterableContext` for a
   single SQL statement, which is both an async iterable of rows and provides
-  `columns()`, `toValues()` and `toRecords()`. The query runs when the result is
-  consumed, and holds its connection until it is fully read or disposed
+  `columns()`, `toValues()`, `toRecords()`, `firstValues()` and `firstRecord()`.
+  The query runs when the result is consumed, and holds its connection until it
+  is fully read or disposed. The record type of the result is given at the call
+  site as a type parameter, and the driver's parameter types, which may extend
+  the standard ones, are given by its client
 - `executeScript(sql, options?)`: Executes a script of one or more statements
   without parameters, such as a migration
 
@@ -92,6 +95,11 @@ mapping of values depend on the driver.
 import { sql } from "@stdx/database/sql";
 import { SqliteClient } from "@stdx/database/drivers/sqlite";
 
+interface User {
+  id: number;
+  name: string;
+}
+
 await using client = new SqliteClient(":memory:");
 await client.execute("CREATE TABLE users (id INTEGER, name TEXT)");
 
@@ -100,8 +108,12 @@ for await (const row of client.query("SELECT * FROM users")) {
   console.log(row.toRecord());
 }
 
-// Or collect
-console.log(await client.query("SELECT * FROM users").toRecords());
+// Or collect, with the record type given at the call site
+console.log(await client.query<User>("SELECT * FROM users").toRecords());
+
+// Or take the first row, which consumes the result
+console.log(await client.query<User>("SELECT * FROM users").firstRecord());
+// { id: 1, name: "Alice" }
 
 // SQL templates render the placeholders of the database
 const name = "Alice";

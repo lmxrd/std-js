@@ -372,6 +372,41 @@ export async function testQueryable(
     await queryable.close();
   });
 
+  await t.step(
+    "firstValues and firstRecord return the first row or undefined",
+    async () => {
+      const queryable = await create();
+      await queryable.connect();
+      const [expectedRecord] = await queryable.query(sql.query).toRecords();
+      assertEquals(
+        await queryable.query(sql.query).firstRecord(),
+        expectedRecord,
+      );
+      const [expectedValues] = await queryable.query(sql.query).toValues();
+      assertEquals(
+        await queryable.query(sql.query).firstValues(),
+        expectedValues,
+      );
+      // An empty result resolves to undefined.
+      assertEquals(
+        await queryable.query(sql.emptyQuery).firstRecord(),
+        undefined,
+      );
+      assertEquals(
+        await queryable.query(sql.emptyQuery).firstValues(),
+        undefined,
+      );
+      // Taking the first row consumes the result.
+      const result = queryable.query(sql.query);
+      await result.firstValues();
+      await assertRejects(() => result.toValues(), QueryError, "consumed");
+      const record = queryable.query(sql.query);
+      await record.firstRecord();
+      await assertRejects(() => record.toValues(), QueryError, "consumed");
+      await queryable.close();
+    },
+  );
+
   await t.step("binds parameters", async () => {
     const queryable = await create();
     await queryable.connect();

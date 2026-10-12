@@ -16,11 +16,64 @@ import {
   type DriverStatement,
   type DriverTransaction,
   type ExecuteResult,
+  type ParameterType,
   QueryError,
   type QueryParameters,
   TransactionError,
   type TransactionOptions,
 } from "../../sql/mod.ts";
+
+/**
+ * SqliteParameterType
+ *
+ * The parameter values that the SQLite driver binds: the standard
+ * {@linkcode ParameterType}, extended with `Date`s, which are bound as ISO 8601
+ * strings. Booleans are bound as `1`/`0`, and binary data from any
+ * `ArrayBufferView` or `ArrayBuffer`. Any other value, such as a plain
+ * object, is bound as its JSON serialization; bind it with a cast, or
+ * serialize it yourself.
+ *
+ * @example
+ * ```ts
+ * import type { SqliteParameterType } from "@stdx/database/drivers/sqlite";
+ *
+ * const values: SqliteParameterType[] = [
+ *   "Alice",
+ *   1,
+ *   true,
+ *   new Date("2024-01-02T03:04:05.000Z"),
+ *   new Uint8Array([1, 2]),
+ * ];
+ * console.log(values.length); // 5
+ * ```
+ */
+export type SqliteParameterType = ParameterType | Date;
+
+/**
+ * SqliteQueryParameters
+ *
+ * The parameters to bind to a SQLite statement, either as an ordered array
+ * with `?` placeholders, or as a record with `:name`, `@name` and `$name`
+ * placeholders. The values are {@linkcode SqliteParameterType}s.
+ *
+ * @example
+ * ```ts
+ * import type { SqliteQueryParameters } from "@stdx/database/drivers/sqlite";
+ * import { SqliteClient } from "@stdx/database/drivers/sqlite";
+ *
+ * await using client = new SqliteClient(":memory:");
+ * await client.execute("CREATE TABLE users (id INTEGER, at TEXT)");
+ * // Positional parameters, with a Date, bound as an ISO 8601 string.
+ * const positional: SqliteQueryParameters = [1, new Date()];
+ * await client.execute("INSERT INTO users VALUES (?, ?)", positional);
+ * // Named parameters.
+ * const named: SqliteQueryParameters = { id: 2, at: new Date() };
+ * await client.execute("INSERT INTO users VALUES (:id, :at)", named);
+ * ```
+ */
+export type SqliteQueryParameters =
+  | SqliteParameterType[]
+  | Record<string, SqliteParameterType>;
 
 /**
  * SqliteConnectionOptions

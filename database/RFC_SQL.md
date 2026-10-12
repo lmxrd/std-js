@@ -309,7 +309,10 @@ type QueryParameters = ParameterType[] | Record<string, ParameterType>;
 
 Drivers must at minimum support `string`, and should support the full
 recommended set, which are the types JavaScript runtimes bind natively. The
-parameter type may be extended with database specific types, such as `Date`.
+parameter type may be extended with database specific types, such as `Date`. A
+driver that extends the parameter types exports them, and its preconfigured
+client is typed with them, so that the extension reaches the whole client level:
+the client, its connections, transactions and prepared statements.
 
 The placeholder style (for example `?`, `$1` or `:name`) and the mapping of
 values to and from database types are database specific, and are not
@@ -634,18 +637,21 @@ interface Queryable {
     params?: QueryParameters,
     options?: QueryOptions,
   ): Promise<ExecuteResult>;
-  query(
+  query<R = Record<string, unknown>>(
     sql: Statement,
     params?: QueryParameters,
     options?: QueryOptions,
-  ): ResultIterableContext;
+  ): ResultIterableContext<unknown[], R>;
   executeScript(sql: string, options?: QueryOptions): Promise<void>;
 }
 ```
 
 - `execute` and `query` accept SQL text or a [SQL template](#sql-templates), and
   run exactly one statement.
-- `query` returns a lazy [result](#result-context).
+- `query` returns a lazy [result](#result-context). Its `R` type parameter
+  determines the record type of the result, given at the call site, such as
+  `query<User>(...)`: the records are of the given type, without validating the
+  values against it.
 - `executeScript` runs a script without parameters.
 
 #### Result Context
@@ -663,6 +669,8 @@ interface ResultIterableContext<
   columns(): Promise<string[]>;
   toValues(): Promise<V[]>;
   toRecords(): Promise<R[]>;
+  firstValues(): Promise<V | undefined>;
+  firstRecord(): Promise<R | undefined>;
 }
 ```
 
@@ -671,6 +679,9 @@ interface ResultIterableContext<
   as invalid SQL or a lost connection, are thrown by the consuming methods.
 - `columns()` resolves to the column names, without consuming the rows.
 - Iterating streams the rows, and `toValues` and `toRecords` collect them.
+- `firstValues()` and `firstRecord()` resolve to the first row as values or as a
+  record respectively, or `undefined` when there are no rows, and consume the
+  result: the remaining rows are not read.
 - The rows are not kept in memory, so a result can be consumed once: either
   iterated or collected. Consuming it again rejects with a `QueryError`. This
   keeps the memory use of streaming a massive result constant.
@@ -694,7 +705,10 @@ interface PreparedStatement extends AsyncDisposable {
   readonly deallocated: boolean;
   deallocate(): Promise<void>;
   execute(params?, options?): Promise<ExecuteResult>;
-  query(params?, options?): ResultIterableContext;
+  query<R = Record<string, unknown>>(
+    params?,
+    options?,
+  ): ResultIterableContext<unknown[], R>;
 }
 ```
 

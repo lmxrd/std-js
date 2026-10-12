@@ -52,13 +52,17 @@ function wrapError(error: unknown, ErrorClass: ErrorClass): DatabaseError {
 }
 
 function transformParams(
-  params: QueryParameters | undefined,
+  params: unknown,
   transform: ((value: unknown) => unknown) | undefined,
 ): QueryParameters | undefined {
-  if (params === undefined || transform === undefined) return params;
+  if (params === undefined || transform === undefined) {
+    return params as QueryParameters | undefined;
+  }
   if (Array.isArray(params)) return params.map(transform) as QueryParameters;
   return Object.fromEntries(
-    Object.entries(params).map(([key, value]) => [key, transform(value)]),
+    (Object.entries(params as Record<string, unknown>)).map((
+      [key, value],
+    ) => [key, transform(value)]),
   ) as QueryParameters;
 }
 
@@ -83,11 +87,12 @@ async function runTransaction<T>(
  * Create a lazy result that delegates to another result, which is only
  * created when the result is started, so that checks, such as whether a
  * transaction is still active, run when the query runs. The `done` callback
- * runs once the delegated result is read or disposed.
+ * runs once the delegated result is read or disposed. The record type is the
+ * given `R`: the delegated result produces records of its own record type.
  */
-function delegateResult(
+function delegateResult<R>(
   start: () => Promise<{ result: ResultIterableContext; done?: Callback }>,
-): ResultIterableContext {
+): ResultIterableContext<unknown[], R> {
   return createResultIterableContext(async () => {
     const { result, done } = await start();
     const finish = async () => {
@@ -109,13 +114,18 @@ function delegateResult(
       }
     }
     return { columns, rows: rows() };
-  });
+  }) as ResultIterableContext<unknown[], R>;
 }
 
 /**
  * The state of a driver connection of the pool, kept across acquires.
+ *
+ * @template IParameters the query parameter types
  */
-interface PooledConnection {
+interface PooledConnection<
+  IParameters extends readonly unknown[] | Record<string, unknown> =
+    QueryParameters,
+> {
   readonly connection: DriverConnection;
   readonly openedAt: number;
   /** The prepared statement cache, in least recently used order */
@@ -127,7 +137,7 @@ interface PooledConnection {
   /** Whether a query result is being read */
   streaming: boolean;
   /** The active root transaction */
-  transaction?: SqlTransaction;
+  transaction?: SqlTransaction<IParameters>;
 }
 
 /**
@@ -135,7 +145,11 @@ interface PooledConnection {
  * operations are rejected: the rest of the result is not buffered, as it may
  * not fit in memory.
  */
-async function lock(pooled: PooledConnection): Promise<() => void> {
+async function lock<
+  IParameters extends readonly unknown[] | Record<string, unknown>,
+>(
+  pooled: PooledConnection<IParameters>,
+): Promise<() => void> {
   if (pooled.streaming) throw new QueryError(STREAMING_MESSAGE);
   const controller = new AbortController();
   pooled.waiting.add(controller);
@@ -158,7 +172,11 @@ async function lock(pooled: PooledConnection): Promise<() => void> {
  * until the result is read, which may only happen after they finish, so they
  * are rejected.
  */
-function startStreaming(pooled: PooledConnection): void {
+function startStreaming<
+  IParameters extends readonly unknown[] | Record<string, unknown>,
+>(
+  pooled: PooledConnection<IParameters>,
+): void {
   pooled.streaming = true;
   for (const waiting of pooled.waiting) {
     waiting.abort(new QueryError(STREAMING_MESSAGE));
@@ -170,8 +188,10 @@ function startStreaming(pooled: PooledConnection): void {
  * cached. Resolves to `undefined` when the driver has no prepared statements
  * or the cache is disabled.
  */
-async function cachedStatement(
-  pooled: PooledConnection,
+async function cachedStatement<
+  IParameters extends readonly unknown[] | Record<string, unknown>,
+>(
+  pooled: PooledConnection<IParameters>,
   sql: string,
   size: number,
 ): Promise<DriverStatement | undefined> {
@@ -195,8 +215,10 @@ async function cachedStatement(
 }
 
 /** Remove a statement from the cache, such as after it failed */
-async function evictStatement(
-  pooled: PooledConnection,
+async function evictStatement<
+  IParameters extends readonly unknown[] | Record<string, unknown>,
+>(
+  pooled: PooledConnection<IParameters>,
   sql: string,
   statement: DriverStatement,
 ): Promise<void> {
@@ -218,23 +240,39 @@ interface ConnectionContext {
 
 // Accessors to private members, assigned in static blocks of the classes, so
 // that the hooks of the client are not part of the public class surface.
-let addDeallocateCallback: (
-  stmt: SqlPreparedStatement,
+let addDeallocateCallback: <
+  IParameters extends readonly unknown[] | Record<string, unknown>,
+>(
+  stmt: SqlPreparedStatement<IParameters>,
   callback: Callback,
 ) => void;
-let addEndCallback: (tx: SqlTransaction, callback: Callback) => void;
-let endTransaction: (tx: SqlTransaction) => Promise<void>;
+let addEndCallback: <
+  IParameters extends readonly unknown[] | Record<string, unknown>,
+>(
+  tx: SqlTransaction<IParameters>,
+  callback: Callback,
+) => void;
+let endTransaction: <
+  IParameters extends readonly unknown[] | Record<string, unknown>,
+>(
+  tx: SqlTransaction<IParameters>,
+) => Promise<void>;
 
 /**
  * The calls a {@linkcode SqlPreparedStatement} delegates to.
+ *
+ * @template IParameters the query parameter types
  */
-interface PreparedStatementCalls {
+interface PreparedStatementCalls<
+  IParameters extends readonly unknown[] | Record<string, unknown> =
+    QueryParameters,
+> {
   execute(
-    params?: QueryParameters,
+    params?: IParameters | QueryParameters,
     options?: QueryOptions,
   ): Promise<ExecuteResult>;
   query(
-    params?: QueryParameters,
+    params?: IParameters | QueryParameters,
     options?: QueryOptions,
   ): ResultIterableContext;
   deallocate(): Promise<void>;
@@ -257,10 +295,15 @@ interface PreparedStatementCalls {
  * console.log(await statement.query([1]).toRecords());
  * // [{ name: "Alice" }]
  * ```
+ *
+ * @template IParameters the query parameter types, extended by the driver
  */
-export class SqlPreparedStatement implements PreparedStatement {
+export class SqlPreparedStatement<
+  IParameters extends readonly unknown[] | Record<string, unknown> =
+    QueryParameters,
+> implements PreparedStatement {
   readonly #sql: string;
-  readonly #calls: PreparedStatementCalls;
+  readonly #calls: PreparedStatementCalls<IParameters>;
   readonly #onDeallocate: Callback[] = [];
   #deallocated = false;
 
@@ -269,7 +312,7 @@ export class SqlPreparedStatement implements PreparedStatement {
    *
    * @ignore
    */
-  constructor(sql: string, calls: PreparedStatementCalls) {
+  constructor(sql: string, calls: PreparedStatementCalls<IParameters>) {
     this.#sql = sql;
     this.#calls = calls;
   }
@@ -299,18 +342,18 @@ export class SqlPreparedStatement implements PreparedStatement {
   }
 
   async execute(
-    params?: QueryParameters,
+    params?: IParameters | QueryParameters,
     options?: QueryOptions,
   ): Promise<ExecuteResult> {
     this.#assertUsable();
     return await this.#calls.execute(params, options);
   }
 
-  query(
-    params?: QueryParameters,
+  query<R = Record<string, unknown>>(
+    params?: IParameters | QueryParameters,
     options?: QueryOptions,
-  ): ResultIterableContext {
-    return delegateResult(() => {
+  ): ResultIterableContext<unknown[], R> {
+    return delegateResult<R>(() => {
       this.#assertUsable();
       return Promise.resolve({ result: this.#calls.query(params, options) });
     });
@@ -328,9 +371,14 @@ export class SqlPreparedStatement implements PreparedStatement {
 
 /**
  * What a {@linkcode SqlTransaction} needs from its connection.
+ *
+ * @template IParameters the query parameter types
  */
-interface TransactionContext {
-  readonly connection: SqlConnection;
+interface TransactionContext<
+  IParameters extends readonly unknown[] | Record<string, unknown> =
+    QueryParameters,
+> {
+  readonly connection: SqlConnection<IParameters>;
   readonly transaction: DriverTransaction;
   /** Run a transaction control operation on the connection */
   control<T>(fn: () => Promise<T>): Promise<T>;
@@ -360,11 +408,16 @@ interface TransactionContext {
  * console.log(transaction.inTransaction); // false
  * // Disposing an active transaction rolls it back instead.
  * ```
+ *
+ * @template IParameters the query parameter types, extended by the driver
  */
-export class SqlTransaction implements Transaction {
-  readonly #context: TransactionContext;
+export class SqlTransaction<
+  IParameters extends readonly unknown[] | Record<string, unknown> =
+    QueryParameters,
+> implements Transaction {
+  readonly #context: TransactionContext<IParameters>;
   readonly #savepoint?: DriverSavepoint;
-  readonly #children: SqlTransaction[] = [];
+  readonly #children: SqlTransaction<IParameters>[] = [];
   readonly #savepoints: { name: string; savepoint: DriverSavepoint }[] = [];
   readonly #onEnd: Callback[] = [];
   #active = true;
@@ -374,7 +427,10 @@ export class SqlTransaction implements Transaction {
    *
    * @ignore
    */
-  constructor(context: TransactionContext, savepoint?: DriverSavepoint) {
+  constructor(
+    context: TransactionContext<IParameters>,
+    savepoint?: DriverSavepoint,
+  ) {
     this.#context = context;
     this.#savepoint = savepoint;
   }
@@ -409,19 +465,19 @@ export class SqlTransaction implements Transaction {
 
   async execute(
     sql: Statement,
-    params?: QueryParameters,
+    params?: IParameters | QueryParameters,
     options?: QueryOptions,
   ): Promise<ExecuteResult> {
     this.#assertActive();
     return await this.#context.connection.execute(sql, params, options);
   }
 
-  query(
+  query<R = Record<string, unknown>>(
     sql: Statement,
-    params?: QueryParameters,
+    params?: IParameters | QueryParameters,
     options?: QueryOptions,
-  ): ResultIterableContext {
-    return delegateResult(() => {
+  ): ResultIterableContext<unknown[], R> {
+    return delegateResult<R>(() => {
       this.#assertActive();
       return Promise.resolve({
         result: this.#context.connection.query(sql, params, options),
@@ -437,20 +493,20 @@ export class SqlTransaction implements Transaction {
   async prepare(
     sql: string,
     options?: QueryOptions,
-  ): Promise<SqlPreparedStatement> {
+  ): Promise<SqlPreparedStatement<IParameters>> {
     this.#assertActive();
     return await this.#context.connection.prepare(sql, options);
   }
 
   async beginTransaction(
     _options?: TransactionOptions,
-  ): Promise<SqlTransaction> {
+  ): Promise<SqlTransaction<IParameters>> {
     this.#assertActive();
     const name = this.#context.savepointName();
     const savepoint = await this.#context.control(() =>
       this.#context.transaction.savepoint(name)
     );
-    const child = new SqlTransaction(this.#context, savepoint);
+    const child = new SqlTransaction<IParameters>(this.#context, savepoint);
     this.#children.push(child);
     return child;
   }
@@ -553,10 +609,15 @@ export class SqlTransaction implements Transaction {
  * console.log(await connection.query("SELECT * FROM users").toRecords());
  * // [{ id: 1, name: "Alice" }]
  * ```
+ *
+ * @template IParameters the query parameter types, extended by the driver
  */
-export class SqlConnection implements Connection {
+export class SqlConnection<
+  IParameters extends readonly unknown[] | Record<string, unknown> =
+    QueryParameters,
+> implements Connection {
   readonly #context: ConnectionContext;
-  readonly #pooled: PooledConnection;
+  readonly #pooled: PooledConnection<IParameters>;
   readonly #release: () => Promise<void>;
   readonly #remove: () => Promise<void>;
   #released = false;
@@ -569,7 +630,7 @@ export class SqlConnection implements Connection {
    */
   constructor(
     context: ConnectionContext,
-    pooled: PooledConnection,
+    pooled: PooledConnection<IParameters>,
     release: () => Promise<void>,
     remove: () => Promise<void>,
   ) {
@@ -636,11 +697,14 @@ export class SqlConnection implements Connection {
     }
   }
 
-  /** Create a lazy result, holding the lock of the connection while read */
-  #result(
+  /**
+   * Create a lazy result, holding the lock of the connection while read. The
+   * record type is the given `R`: the rows are mapped to records of it.
+   */
+  #result<R = Record<string, unknown>>(
     options: QueryOptions,
     start: () => Promise<DriverRows>,
-  ): ResultIterableContext {
+  ): ResultIterableContext<unknown[], R> {
     return createResultIterableContext(async () => {
       try {
         options.signal?.throwIfAborted();
@@ -664,7 +728,7 @@ export class SqlConnection implements Connection {
       } catch (error) {
         throw this.#context.error(error, QueryError, options.signal);
       }
-    });
+    }) as ResultIterableContext<unknown[], R>;
   }
 
   async *#rows(
@@ -692,12 +756,12 @@ export class SqlConnection implements Connection {
 
   #render(
     statement: Statement,
-    params: QueryParameters | undefined,
+    params: (IParameters | QueryParameters) | undefined,
     options: QueryOptions,
   ): { sql: string; params: QueryParameters | undefined } {
     const rendered = renderStatement(
       statement,
-      params,
+      params as QueryParameters | undefined,
       (index) => this.#context.dialect.placeholder(index),
     );
     return {
@@ -713,7 +777,7 @@ export class SqlConnection implements Connection {
    */
   async #runCached<T>(
     sql: Statement,
-    params: QueryParameters | undefined,
+    params: (IParameters | QueryParameters) | undefined,
     merged: QueryOptions,
     run: (
       statement: DriverStatement | undefined,
@@ -736,7 +800,7 @@ export class SqlConnection implements Connection {
 
   async execute(
     sql: Statement,
-    params?: QueryParameters,
+    params?: IParameters | QueryParameters,
     options?: QueryOptions,
   ): Promise<ExecuteResult> {
     const merged = this.#merge(options);
@@ -757,13 +821,13 @@ export class SqlConnection implements Connection {
     );
   }
 
-  query(
+  query<R = Record<string, unknown>>(
     sql: Statement,
-    params?: QueryParameters,
+    params?: IParameters | QueryParameters,
     options?: QueryOptions,
-  ): ResultIterableContext {
+  ): ResultIterableContext<unknown[], R> {
     const merged = this.#merge(options);
-    return this.#result(
+    return this.#result<R>(
       merged,
       () =>
         this.#runCached(sql, params, merged, (statement, call) => {
@@ -796,7 +860,7 @@ export class SqlConnection implements Connection {
   async prepare(
     sql: string,
     options?: QueryOptions,
-  ): Promise<SqlPreparedStatement> {
+  ): Promise<SqlPreparedStatement<IParameters>> {
     const base = this.#merge(options);
     const { connection } = this.#pooled;
     const native = await this.#run(
@@ -805,7 +869,7 @@ export class SqlConnection implements Connection {
       async () => await connection.prepare?.(sql),
     );
     const args = (
-      params: QueryParameters | undefined,
+      params: (IParameters | QueryParameters) | undefined,
       merged: QueryOptions,
     ) =>
       [
@@ -849,7 +913,7 @@ export class SqlConnection implements Connection {
 
   async beginTransaction(
     options?: TransactionOptions,
-  ): Promise<SqlTransaction> {
+  ): Promise<SqlTransaction<IParameters>> {
     try {
       this.#assertUsable();
     } catch (error) {
@@ -921,6 +985,7 @@ export class SqlConnection implements Connection {
  *
  * @template IDriver the driver
  * @template IOptions the client options
+ * @template IParameters the query parameter types, extended by the driver
  *
  * @example
  * ```ts
@@ -935,6 +1000,8 @@ export class SqlConnection implements Connection {
 export class SqlClient<
   IDriver extends Driver = Driver,
   IOptions extends ClientOptions = ClientOptions,
+  IParameters extends readonly unknown[] | Record<string, unknown> =
+    QueryParameters,
 > implements Client<IOptions> {
   readonly #driver: IDriver;
   readonly #connectionUrl: string | URL;
@@ -942,11 +1009,11 @@ export class SqlClient<
   readonly eventTarget: ClientEventTarget = new ClientEventTarget();
   readonly #dispatched = new WeakSet<DatabaseError>();
   readonly #idleTimers = new Map<
-    PooledConnection,
+    PooledConnection<IParameters>,
     ReturnType<typeof setTimeout>
   >();
   readonly #context: ConnectionContext;
-  #stack?: DeferredStack<PooledConnection>;
+  #stack?: DeferredStack<PooledConnection<IParameters>>;
   #opening = 0;
   #connected = false;
   #closed = false;
@@ -1038,19 +1105,19 @@ export class SqlClient<
   }
 
   /** Whether a connection has reached its maximum lifetime */
-  #expired(pooled: PooledConnection): boolean {
+  #expired(pooled: PooledConnection<IParameters>): boolean {
     const { maxLifetime } = this.#poolOptions;
     return maxLifetime !== undefined &&
       Date.now() - pooled.openedAt >= maxLifetime;
   }
 
-  #clearIdleTimer(pooled: PooledConnection): void {
+  #clearIdleTimer(pooled: PooledConnection<IParameters>): void {
     clearTimeout(this.#idleTimers.get(pooled));
     this.#idleTimers.delete(pooled);
   }
 
   /** Close the connection once it has been idle for the idle timeout */
-  #scheduleIdle(pooled: PooledConnection): void {
+  #scheduleIdle(pooled: PooledConnection<IParameters>): void {
     const { idleTimeout } = this.#poolOptions;
     const stack = this.#stack;
     if (idleTimeout === undefined || !stack) return;
@@ -1117,7 +1184,7 @@ export class SqlClient<
         await connection.close();
         throw new ConnectionError("Client is closed");
       }
-      const pooled: PooledConnection = {
+      const pooled: PooledConnection<IParameters> = {
         connection,
         openedAt: Date.now(),
         statements: new Map(),
@@ -1146,8 +1213,8 @@ export class SqlClient<
   }
 
   async #release(
-    element: DeferredStackElement<PooledConnection>,
-    pooled: PooledConnection,
+    element: DeferredStackElement<PooledConnection<IParameters>>,
+    pooled: PooledConnection<IParameters>,
   ): Promise<void> {
     this.#dispatch("release");
     try {
@@ -1168,7 +1235,7 @@ export class SqlClient<
   }
 
   async #remove(
-    element: DeferredStackElement<PooledConnection>,
+    element: DeferredStackElement<PooledConnection<IParameters>>,
   ): Promise<void> {
     await element.remove();
     await this.#replenish();
@@ -1176,9 +1243,9 @@ export class SqlClient<
 
   /** Pop a connection, waiting at most until the deadline */
   async #pop(
-    stack: DeferredStack<PooledConnection>,
+    stack: DeferredStack<PooledConnection<IParameters>>,
     deadline: number | undefined,
-  ): Promise<DeferredStackElement<PooledConnection>> {
+  ): Promise<DeferredStackElement<PooledConnection<IParameters>>> {
     if (deadline === undefined) return await stack.pop();
     const controller = new AbortController();
     const timer = setTimeout(
@@ -1225,7 +1292,7 @@ export class SqlClient<
     }
     this.#connected = true;
     this.#closed = false;
-    this.#stack = new DeferredStack<PooledConnection>({
+    this.#stack = new DeferredStack<PooledConnection<IParameters>>({
       maxSize: maxSize!,
       removeFn: (pooled) => {
         this.#clearIdleTimer(pooled);
@@ -1251,7 +1318,7 @@ export class SqlClient<
       .catch(() => {});
   }
 
-  async acquire(): Promise<SqlConnection> {
+  async acquire(): Promise<SqlConnection<IParameters>> {
     const { acquireTimeout } = this.#poolOptions;
     const deadline = acquireTimeout === undefined
       ? undefined
@@ -1288,21 +1355,21 @@ export class SqlClient<
 
   async execute(
     sql: Statement,
-    params?: QueryParameters,
+    params?: IParameters | QueryParameters,
     options?: QueryOptions,
   ): Promise<ExecuteResult> {
     await using connection = await this.acquire();
     return await connection.execute(sql, params, options);
   }
 
-  query(
+  query<R = Record<string, unknown>>(
     sql: Statement,
-    params?: QueryParameters,
+    params?: IParameters | QueryParameters,
     options?: QueryOptions,
-  ): ResultIterableContext {
+  ): ResultIterableContext<unknown[], R> {
     // The connection is acquired when the query runs, and held until the
     // result is fully read or disposed.
-    return delegateResult(async () => {
+    return delegateResult<R>(async () => {
       const connection = await this.acquire();
       return {
         result: connection.query(sql, params, options),
@@ -1322,7 +1389,7 @@ export class SqlClient<
    * when it ends, and the connection is released when creating it fails.
    */
   async #holding<T>(
-    create: (connection: SqlConnection) => Promise<T>,
+    create: (connection: SqlConnection<IParameters>) => Promise<T>,
     onEnd: (held: T, release: () => Promise<void>) => void,
   ): Promise<T> {
     const connection = await this.acquire();
@@ -1339,7 +1406,7 @@ export class SqlClient<
   async prepare(
     sql: string,
     options?: QueryOptions,
-  ): Promise<SqlPreparedStatement> {
+  ): Promise<SqlPreparedStatement<IParameters>> {
     // The connection is held until the statement is deallocated.
     return await this.#holding(
       (connection) => connection.prepare(sql, options),
@@ -1349,7 +1416,7 @@ export class SqlClient<
 
   async beginTransaction(
     options?: TransactionOptions,
-  ): Promise<SqlTransaction> {
+  ): Promise<SqlTransaction<IParameters>> {
     // The connection is held until the transaction has ended.
     return await this.#holding(
       (connection) => connection.beginTransaction(options),
