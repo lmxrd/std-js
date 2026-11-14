@@ -46,13 +46,6 @@ const ISO8601_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const ISO8601_DURATION =
   /^P(?!$)(?:\d+W|(?:\d+Y)?(?:\d+M)?(?:\d+D)?(?:T(?=\d)(?:\d+H)?(?:\d+M)?(?:\d+S)?)?)$/;
 
-/** RFC 5321 email address (ASCII). */
-const RFC5321_EMAIL = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-
-/** RFC 6531 email address, with an internationalized domain and local part. */
-const RFC6531_IDN_EMAIL =
-  /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$|^[\p{L}0-9._%+-]+@[\p{L}0-9.-]+\.[\p{L}]{2,}$/u;
-
 /**
  * RFC 1123 hostname: dot separated labels of letters, digits and hyphens
  * (1-63 characters, not starting or ending with a hyphen), at most 253
@@ -65,35 +58,76 @@ const RFC1123_HOSTNAME =
 const RFC5890_IDN_HOSTNAME =
   /^(?=.{1,253}\.?$)[\p{L}\p{N}\p{M}](?:[\p{L}\p{N}\p{M}-]{0,61}[\p{L}\p{N}\p{M}])?(?:\.[\p{L}\p{N}\p{M}](?:[\p{L}\p{N}\p{M}-]{0,61}[\p{L}\p{N}\p{M}])?)*\.?$/u;
 
-const IPV4 =
-  "(?:(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\.){3}(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)";
-const H16 = "[0-9a-fA-F]{1,4}";
-
 /** RFC 2673 IPv4 address in dotted-decimal notation, without leading zeros. */
-const RFC2673_IPV4 = new RegExp(`^${IPV4}$`);
+const RFC2673_IPV4 =
+  /^(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)$/;
+
+/** The characters an RFC 4291 IPv6 address can contain. */
+const IPV6_CHARS = /^[0-9a-fA-F:.]+$/;
 
 /**
- * RFC 2373 IPv6 address: full or compressed (`::`) form, optionally ending in
- * an embedded IPv4 address, without a zone index.
+ * RFC 5321 `Dot-string` local part: `atext` atoms separated by single dots.
  */
-const RFC2373_IPV6 = new RegExp(
-  `^(?:${
-    [
-      `(?:${H16}:){7}${H16}`,
-      `(?:${H16}:){1,7}:`,
-      `(?:${H16}:){1,6}:${H16}`,
-      `(?:${H16}:){1,5}(?::${H16}){1,2}`,
-      `(?:${H16}:){1,4}(?::${H16}){1,3}`,
-      `(?:${H16}:){1,3}(?::${H16}){1,4}`,
-      `(?:${H16}:){1,2}(?::${H16}){1,5}`,
-      `${H16}:(?::${H16}){1,6}`,
-      `:(?:(?::${H16}){1,7}|:)`,
-      `(?:${H16}:){6}${IPV4}`,
-      `(?:${H16}:){1,4}:${IPV4}`,
-      `::(?:[fF]{4}(?::0{1,4})?:)?${IPV4}`,
-    ].join("|")
-  })$`,
-);
+const RFC5321_DOT_STRING =
+  /^[a-zA-Z0-9!#$%&'*+\-/=?^_`{|}~]+(?:\.[a-zA-Z0-9!#$%&'*+\-/=?^_`{|}~]+)*$/;
+
+/**
+ * RFC 5321 `Quoted-string` local part: printable ASCII and spaces between
+ * double quotes, with `"` and `\` escaped by a backslash.
+ */
+const RFC5321_QUOTED_STRING =
+  /^"(?:[\x20\x21\x23-\x5b\x5d-\x7e]|\\[\x20-\x7e])*"$/;
+
+/** RFC 6531 `Dot-string` local part: {@linkcode RFC5321_DOT_STRING} plus any non-ASCII character. */
+const RFC6531_DOT_STRING =
+  /^[a-zA-Z0-9!#$%&'*+\-/=?^_`{|}~\u0080-\u{10ffff}]+(?:\.[a-zA-Z0-9!#$%&'*+\-/=?^_`{|}~\u0080-\u{10ffff}]+)*$/u;
+
+/** RFC 6531 `Quoted-string` local part: {@linkcode RFC5321_QUOTED_STRING} plus any non-ASCII character. */
+const RFC6531_QUOTED_STRING =
+  /^"(?:[\x20\x21\x23-\x5b\x5d-\x7e\u0080-\u{10ffff}]|\\[\x20-\x7e])*"$/u;
+
+/**
+ * RFC 4291 IPv6 address: full or compressed (`::`) form, optionally ending in
+ * an embedded IPv4 address, without a zone index.
+ *
+ * Parsed with the WHATWG URL host parser, which implements the RFC 4291 text
+ * representation, after restricting the input to IPv6 characters so nothing
+ * but the address reaches the parser.
+ */
+function isIPv6(value: string): boolean {
+  return IPV6_CHARS.test(value) && URL.canParse(`http://[${value}]`);
+}
+
+/**
+ * RFC 5321 domain of an email address: a hostname without a trailing dot, or
+ * an address literal (`[192.0.2.1]` or `[IPv6:2001:db8::1]`).
+ */
+function isEmailDomain(domain: string, hostname: RegExp): boolean {
+  if (domain.startsWith("[") && domain.endsWith("]")) {
+    const literal = domain.slice(1, -1);
+    return /^ipv6:/i.test(literal)
+      ? isIPv6(literal.slice(5))
+      : RFC2673_IPV4.test(literal);
+  }
+  return !domain.endsWith(".") && hostname.test(domain);
+}
+
+/**
+ * RFC 5321 `Mailbox` (or RFC 6531 with `idn`): a dot-string or quoted-string
+ * local part, `@` and a domain.
+ */
+function isEmail(value: string, idn: boolean): boolean {
+  // A domain never contains `@`, so the last one separates the two parts.
+  const at = value.lastIndexOf("@");
+  if (at === -1) return false;
+  const local = value.slice(0, at);
+  const domain = value.slice(at + 1);
+  const [dotString, quotedString, hostname] = idn
+    ? [RFC6531_DOT_STRING, RFC6531_QUOTED_STRING, RFC5890_IDN_HOSTNAME]
+    : [RFC5321_DOT_STRING, RFC5321_QUOTED_STRING, RFC1123_HOSTNAME];
+  return (dotString.test(local) || quotedString.test(local)) &&
+    isEmailDomain(domain, hostname);
+}
 
 /** RFC 4122 UUID in the 8-4-4-4-12 hex layout, any version. */
 const RFC4122_UUID =
@@ -177,12 +211,12 @@ const FORMATS: Readonly<Record<StringFormat, (value: string) => boolean>> = {
   "date": isValidDate,
   "time": isValidTime,
   "duration": (value) => ISO8601_DURATION.test(value),
-  "email": (value) => RFC5321_EMAIL.test(value),
-  "idn-email": (value) => RFC6531_IDN_EMAIL.test(value),
+  "email": (value) => isEmail(value, false),
+  "idn-email": (value) => isEmail(value, true),
   "hostname": (value) => RFC1123_HOSTNAME.test(value),
   "idn-hostname": (value) => RFC5890_IDN_HOSTNAME.test(value),
   "ipv4": (value) => RFC2673_IPV4.test(value),
-  "ipv6": (value) => RFC2373_IPV6.test(value),
+  "ipv6": isIPv6,
   "uri": (value) => RFC3986_URI.test(value),
   "uri-reference": (value) => RFC3986_URI_REFERENCE.test(value),
   "iri": (value) => RFC3987_IRI.test(value),
