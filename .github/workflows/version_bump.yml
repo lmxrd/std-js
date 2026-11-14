@@ -12,6 +12,11 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v7
+        with:
+          # Full history and tags: `deno bump-version` reads the commits since
+          # the latest release tag.
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Set up Deno
         uses: denoland/setup-deno@v2
@@ -24,7 +29,6 @@ jobs:
 
       - name: Run version bump
         run: |
-          git fetch --unshallow origin
           deno bump-version
           # `deno bump-version` writes release notes as single long lines;
           # format them so the release PR passes `deno fmt --check`.
