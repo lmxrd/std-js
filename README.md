@@ -2,7 +2,7 @@
 
 [![JSR @stdx](https://jsr.io/badges/@stdx)](https://jsr.io/@stdx)
 [![codecov](https://codecov.io/gh/halvardssm/std-js/graph/badge.svg?token=T1JEMGF8VW)](https://codecov.io/gh/halvardssm/std-js)
-[![ci](https://github.com/halvardssm/std-js/actions/workflows/ci.yml/badge.svg)](https://github.com/halvardssm/std-js/actions/workflows/ci.yml)
+[![ci](https://github.com/lmxrd/std-js/actions/workflows/ci.yml/badge.svg)](https://github.com/lmxrd/std-js/actions/workflows/ci.yml)
 
 > 🚨 The packages have moved from the `@stdext` scope to
 > [`@stdx`](https://jsr.io/@stdx). The `@stdext` scope is deprecated, see the
@@ -92,7 +92,7 @@ console.log(dump(buffer));
 The packages are primarily developed and tested on macOS and Linux. Windows
 support is not guaranteed, and packages may not work as expected on Windows. If
 you encounter an issue on Windows, please
-[report it](https://github.com/halvardssm/std-js/issues).
+[report it](https://github.com/lmxrd/std-js/issues).
 
 ## Versioning
 

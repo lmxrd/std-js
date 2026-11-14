@@ -6,8 +6,8 @@ follows.
 
 ## Proposing a change
 
-1. Open an [issue](https://github.com/halvardssm/std-js/issues) that describes
-   the addition or change.
+1. Open an [issue](https://github.com/lmxrd/std-js/issues) that describes the
+   addition or change.
 2. After getting feedback and approval, open a pull request that links to the
    issue.
 
@@ -161,11 +161,11 @@ Do not bump versions by hand; that happens when releasing.
 Maintainers bump the versions and publish the packages to JSR as follows:
 
 1. Trigger the manual GitHub action
-   [version bump](https://github.com/halvardssm/std-js/actions/workflows/version_bump.yml).
+   [version bump](https://github.com/lmxrd/std-js/actions/workflows/version_bump.yml).
 2. Check the created PR, verify the changes, and merge.
-3. Create a [new release](https://github.com/halvardssm/std-js/releases/new),
-   with the tag name `release-[date]` (e.g. `release-2024.12.29`) and auto
-   generate release notes.
+3. Create a [new release](https://github.com/lmxrd/std-js/releases/new), with
+   the tag name `release-[date]` (e.g. `release-2024.12.29`) and auto generate
+   release notes.
 4. Publishing the release triggers the
-   [workspace publish](https://github.com/halvardssm/std-js/actions/workflows/workspace_publish.yml)
+   [workspace publish](https://github.com/lmxrd/std-js/actions/workflows/workspace_publish.yml)
    workflow, which runs the checks and tests and publishes the packages to JSR.
