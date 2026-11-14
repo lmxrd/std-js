@@ -101,42 +101,9 @@ STD, but minor and patch versions will be separated.
 
 ## Dependencies
 
-We allow the following dependencies for JS:
-
-- Everything under the namespace [@deno](https://jsr.io/@deno) on JSR
-- Everything under the namespace [@std](https://jsr.io/@std) on JSR
-- [Standard Schema](https://standardschema.dev):
-  [`@standard-schema/spec`](https://jsr.io/@standard-schema/spec) and
-  [`@standard-schema/utils`](https://jsr.io/@standard-schema/utils)
-
-> - Imports for other standard specifications will be decided on a case by case
->   basis.
-> - 3rd party libraries for testing will be decided on a case by case basis.
-
-We allow no additional third-party dependencies for JS, thus all code must be
-implemented.
-
-For modules that use Rust to compile to WASM, we allow the usage of third-party
-crates if necessary, but this will be considered on a case-by-case basis.
-
-Allowed test dependencies:
-
-- zod: `jsr:@zod/zod@^4`
-
-## WASM
-
-All wasm code is generated from the rust workspace in the [\_wasm](./_wasm)
-folder.
-
-To generate the wasm code:
-
-```sh
-deno task build:wasm
-```
-
-This will call the [build_wasm.ts](./_tools/build_wasm.ts) script and will place
-each generated lib in its respective package based on its prefix. See script for
-more details.
+The packages depend only on the Deno STD, packages under `@deno`, and
+[Standard Schema](https://standardschema.dev). See the
+[dependency policy](./CONTRIBUTING.md#dependencies) for details.
 
 ## Deprecation Policy
 
@@ -152,48 +119,11 @@ For deprecated functions and modules, and their replacement, see the
 
 ## Contributing
 
-To contribute, first open an issue to describe the addition. After getting
-feedback and approval, open a PR linking to the issue.
-
-Code that is copied from other places, must be credited and is only allowed if
-the license allows for it.
-
-### Development
-
-The tools (Deno, and Rust with the `wasm32-unknown-unknown` target) are managed
-with [mise](https://mise.jdx.dev). Run `mise install` to set them up. The tasks
-are defined in both [deno.json](./deno.json) and [mise.toml](./mise.toml), so
-`deno task <name>` and `mise run <name>` are interchangeable.
-
-```sh
-deno task check            # format check (JS + Rust), lint and type-check
-deno task test             # run the tests with coverage
-deno task fix              # format and auto-fix lint rules
-mise run check:pre-commit  # everything CI checks, including a publish dry run
-```
-
-- New functionality needs colocated tests (`*.test.ts`).
-- Public modules need a subpath export in the package's `deno.json`.
-- Commit messages follow
-  [conventional commits](https://www.conventionalcommits.org), scoped by
-  package, e.g. `feat(crypto): add hotp`. They are used to generate
-  [Releases.md](./Releases.md), which should not be edited by hand.
+Contributions are welcome. Open an issue to describe the addition before opening
+a pull request. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the process, the
+development setup, the dependency policy and how releases are made.
 
 Guidance for AI coding agents is in [AGENTS.md](./AGENTS.md).
-
-## Workflows
-
-To bump versions and publish the packages to JSR, do the following:
-
-1. Trigger the manual GitHub action
-   [version bump](https://github.com/halvardssm/std-js/actions/workflows/version_bump.yml).
-2. Check the created PR, verify the changes, and merge.
-3. Create a [new release](https://github.com/halvardssm/std-js/releases/new),
-   with the tag name `release-[date]` (e.g. `release-2024.12.29`) and auto
-   generate release notes.
-4. Publishing the release triggers the
-   [workspace publish](https://github.com/halvardssm/std-js/actions/workflows/workspace_publish.yml)
-   workflow, which runs the checks and tests and publishes the packages to JSR.
 
 ## Acknowledgments
 
