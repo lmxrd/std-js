@@ -131,6 +131,12 @@ deno task build:wasm
 CI checks that the committed artifacts match the sources with
 `deno task build:wasm:check`.
 
+Dependabot opens weekly PRs that update the GitHub Actions, the imports in the
+root `deno.json`, and the Rust crates. A crate update changes the generated
+wasm, so check out the PR, run `deno task build:wasm`, and commit the artifacts
+before merging. `wasm-bindgen` is excluded, because it must match the version
+`@deno/wasmbuild` requires; update the two together.
+
 ## Deprecations
 
 When functionality is adopted by JavaScript language APIs, Web Standard APIs or
