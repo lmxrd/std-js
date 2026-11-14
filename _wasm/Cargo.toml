@@ -23,7 +23,7 @@ getrandom = { version = "0.4", features = ["wasm_js"] }
 argon2 = "0.6"
 bcrypt = "0.19"
 scrypt = { version = "0.12", features = ["alloc", "getrandom", "phc"] }
-uppsala = "0.10"
+uppsala = "0.12"
 indexmap = { version = "2", features = ["serde"] }
 
 [profile.release]
