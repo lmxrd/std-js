@@ -96,8 +96,8 @@ you encounter an issue on Windows, please
 
 ## Versioning
 
-We follow the semantic versioning scheme. We will share major versions with Deno
-STD, but minor and patch versions will be separated.
+We follow the semantic versioning scheme. Each package is versioned
+independently.
 
 ## Dependencies
 

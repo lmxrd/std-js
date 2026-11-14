@@ -28,8 +28,8 @@ mise run check:pre-commit   # everything CI checks, including a publish dry run
 - `deno task check` and `deno task test` pass.
 - If you touched Rust code in `_wasm/`, you ran `deno task build:wasm` and
   committed the generated artifacts.
-- New functionality has colocated tests, and public modules have a subpath
-  export in the package's `deno.json`.
+- New functionality has colocated tests, and is reachable through the package's
+  `exports` (see the subpath guideline in CONTRIBUTING.md).
 - The package `README.md`, its `deno.json` `description`, and the tables in the
   root `README.md` match the change.
 - No new dependencies outside the policy in CONTRIBUTING.md.

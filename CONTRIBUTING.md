@@ -68,8 +68,11 @@ is a top-level directory listed in the `workspace` field of the root
   `cargo fmt`. Do not format by hand; run `deno task fix`.
 - New functionality needs colocated tests (`*.test.ts`). Aim for full line
   coverage of code that is not generated.
-- Every public module needs a subpath export in the `exports` map of the
-  package's `deno.json`.
+- Public API is usually exported from the package's root module (`mod.ts`). Give
+  a module its own subpath export in the `exports` map of the package's
+  `deno.json` when it is large or self-contained enough that users would import
+  it on its own (e.g. `@stdx/crypto/hash/argon2`). Small helpers can stay in the
+  root export only.
 - JSDoc examples must be valid, type-checkable code that imports from an export
   that exists. They are part of the published docs.
 - Use the types of the std package being extended (`@std/xml`, `@std/http`,
