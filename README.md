@@ -52,14 +52,14 @@ console.log(dump(buffer));
 | [assert](https://jsr.io/@stdx/assert)           | The assert package, contains validators and assertions                                                                         |
 | [cli](https://jsr.io/@stdx/cli)                 | The cli package contains a command framework and helpers for building command line applications                                |
 | [collections](https://jsr.io/@stdx/collections) | The collections package contains commonly used utilities and structures                                                        |
-| [crypto](https://jsr.io/@stdx/crypto)           | The crypto package contains utility for crypto, hashing, HMAC and SCRAM authentication                                         |
+| [crypto](https://jsr.io/@stdx/crypto)           | The crypto package contains password hashing, HMAC, HOTP, TOTP and SCRAM authentication                                        |
 | [database](https://jsr.io/@stdx/database)       | The database package contains interfaces and helpers for interacting with databases, and a SQLite driver                       |
 | [encoding](https://jsr.io/@stdx/encoding)       | The encoding package contains utility for text and binary encoding                                                             |
 | [event](https://jsr.io/@stdx/event)             | The event package contains extensions for events                                                                               |
 | [ffi](https://jsr.io/@stdx/ffi)                 | The FFI package contains helpers when using FFI                                                                                |
 | [fs](https://jsr.io/@stdx/fs)                   | The fs package contains helpers for the file system                                                                            |
 | [http](https://jsr.io/@stdx/http)               | The http package contains utility for fetching and http servers                                                                |
-| [json](https://jsr.io/@stdx/json)               | The json package, contains helpers for json parsing, querying (jsonpath) and processing                                        |
+| [json](https://jsr.io/@stdx/json)               | The json package, contains helpers for json parsing, querying (jsonpath), JSON Schema and processing                           |
 | [lexer](https://jsr.io/@stdx/lexer)             | The lexer package contains general purpose lexers/tokenizers                                                                   |
 | [types](https://jsr.io/@stdx/types)             | The types package, contains general purpose type helpers                                                                       |
 | [validation](https://jsr.io/@stdx/validation)   | The validation package, builds schemas that implement both Standard Schema and Standard JSON Schema, with fully inferred types |
@@ -105,8 +105,12 @@ We allow the following dependencies for JS:
 
 - Everything under the namespace [@deno](https://jsr.io/@deno) on JSR
 - Everything under the namespace [@std](https://jsr.io/@std) on JSR
+- [Standard Schema](https://standardschema.dev):
+  [`@standard-schema/spec`](https://jsr.io/@standard-schema/spec) and
+  [`@standard-schema/utils`](https://jsr.io/@standard-schema/utils)
 
-> - Imports for standard specifications will be decided on a case by case basis.
+> - Imports for other standard specifications will be decided on a case by case
+>   basis.
 > - 3rd party libraries for testing will be decided on a case by case basis.
 
 We allow no additional third-party dependencies for JS, thus all code must be
@@ -154,6 +158,29 @@ feedback and approval, open a PR linking to the issue.
 Code that is copied from other places, must be credited and is only allowed if
 the license allows for it.
 
+### Development
+
+The tools (Deno, and Rust with the `wasm32-unknown-unknown` target) are managed
+with [mise](https://mise.jdx.dev). Run `mise install` to set them up. The tasks
+are defined in both [deno.json](./deno.json) and [mise.toml](./mise.toml), so
+`deno task <name>` and `mise run <name>` are interchangeable.
+
+```sh
+deno task check            # format check (JS + Rust), lint and type-check
+deno task test             # run the tests with coverage
+deno task fix              # format and auto-fix lint rules
+mise run check:pre-commit  # everything CI checks, including a publish dry run
+```
+
+- New functionality needs colocated tests (`*.test.ts`).
+- Public modules need a subpath export in the package's `deno.json`.
+- Commit messages follow
+  [conventional commits](https://www.conventionalcommits.org), scoped by
+  package, e.g. `feat(crypto): add hotp`. They are used to generate
+  [Releases.md](./Releases.md), which should not be edited by hand.
+
+Guidance for AI coding agents is in [AGENTS.md](./AGENTS.md).
+
 ## Workflows
 
 To bump versions and publish the packages to JSR, do the following:
@@ -164,6 +191,9 @@ To bump versions and publish the packages to JSR, do the following:
 3. Create a [new release](https://github.com/halvardssm/std-js/releases/new),
    with the tag name `release-[date]` (e.g. `release-2024.12.29`) and auto
    generate release notes.
+4. Publishing the release triggers the
+   [workspace publish](https://github.com/halvardssm/std-js/actions/workflows/workspace_publish.yml)
+   workflow, which runs the checks and tests and publishes the packages to JSR.
 
 ## Acknowledgments
 
