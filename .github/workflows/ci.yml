@@ -31,7 +31,7 @@ jobs:
 
     steps:
       - name: Clone repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Deno
         uses: denoland/setup-deno@v2
@@ -39,7 +39,7 @@ jobs:
           deno-version: ${{ matrix.deno }}
 
       - name: Set up mise
-        uses: jdx/mise-action@v4
+        uses: jdx/mise-action@v5
 
       - name: Run tests
         run: mise run test
@@ -48,10 +48,10 @@ jobs:
         run: mise run cov:gen
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        uses: codecov/codecov-action@v7
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: cov.lcov
           name: ${{ matrix.os }}-${{ matrix.deno }}
 
   check:
@@ -59,13 +59,13 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Clone repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
       # Installs deno and rust from mise.toml.
       - name: Set up mise
-        uses: jdx/mise-action@v4
+        uses: jdx/mise-action@v5
 
       - name: Format & Lint
         run: mise run check
@@ -82,11 +82,11 @@ jobs:
 
     steps:
       - name: Clone repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Installs deno and rust from mise.toml.
       - name: Set up mise
-        uses: jdx/mise-action@v4
+        uses: jdx/mise-action@v5
 
       - name: Publish (dry run)
         run: deno publish --dry-run

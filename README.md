@@ -2,7 +2,7 @@
 
 [![JSR @stdx](https://jsr.io/badges/@stdx)](https://jsr.io/@stdx)
 [![codecov](https://codecov.io/gh/halvardssm/std-js/graph/badge.svg?token=T1JEMGF8VW)](https://codecov.io/gh/halvardssm/std-js)
-[![ci](https://github.com/halvardssm/std-js/actions/workflows/ci.yml/badge.svg)](https://github.com/halvardssm/std-js/actions/workflows/ci.yml)
+[![ci](https://github.com/lmxrd/std-js/actions/workflows/ci.yml/badge.svg)](https://github.com/lmxrd/std-js/actions/workflows/ci.yml)
 
 > 🚨 The packages have moved from the `@stdext` scope to
 > [`@stdx`](https://jsr.io/@stdx). The `@stdext` scope is deprecated, see the
@@ -52,14 +52,14 @@ console.log(dump(buffer));
 | [assert](https://jsr.io/@stdx/assert)           | The assert package, contains validators and assertions                                                                         |
 | [cli](https://jsr.io/@stdx/cli)                 | The cli package contains a command framework and helpers for building command line applications                                |
 | [collections](https://jsr.io/@stdx/collections) | The collections package contains commonly used utilities and structures                                                        |
-| [crypto](https://jsr.io/@stdx/crypto)           | The crypto package contains utility for crypto, hashing, HMAC and SCRAM authentication                                         |
+| [crypto](https://jsr.io/@stdx/crypto)           | The crypto package contains password hashing, HMAC, HOTP, TOTP and SCRAM authentication                                        |
 | [database](https://jsr.io/@stdx/database)       | The database package contains interfaces and helpers for interacting with databases, and a SQLite driver                       |
 | [encoding](https://jsr.io/@stdx/encoding)       | The encoding package contains utility for text and binary encoding                                                             |
 | [event](https://jsr.io/@stdx/event)             | The event package contains extensions for events                                                                               |
 | [ffi](https://jsr.io/@stdx/ffi)                 | The FFI package contains helpers when using FFI                                                                                |
 | [fs](https://jsr.io/@stdx/fs)                   | The fs package contains helpers for the file system                                                                            |
 | [http](https://jsr.io/@stdx/http)               | The http package contains utility for fetching and http servers                                                                |
-| [json](https://jsr.io/@stdx/json)               | The json package, contains helpers for json parsing, querying (jsonpath) and processing                                        |
+| [json](https://jsr.io/@stdx/json)               | The json package, contains helpers for json parsing, querying (jsonpath), JSON Schema and processing                           |
 | [lexer](https://jsr.io/@stdx/lexer)             | The lexer package contains general purpose lexers/tokenizers                                                                   |
 | [types](https://jsr.io/@stdx/types)             | The types package, contains general purpose type helpers                                                                       |
 | [validation](https://jsr.io/@stdx/validation)   | The validation package, builds schemas that implement both Standard Schema and Standard JSON Schema, with fully inferred types |
@@ -92,47 +92,18 @@ console.log(dump(buffer));
 The packages are primarily developed and tested on macOS and Linux. Windows
 support is not guaranteed, and packages may not work as expected on Windows. If
 you encounter an issue on Windows, please
-[report it](https://github.com/halvardssm/std-js/issues).
+[report it](https://github.com/lmxrd/std-js/issues).
 
 ## Versioning
 
-We follow the semantic versioning scheme. We will share major versions with Deno
-STD, but minor and patch versions will be separated.
+We follow the semantic versioning scheme. Each package is versioned
+independently.
 
 ## Dependencies
 
-We allow the following dependencies for JS:
-
-- Everything under the namespace [@deno](https://jsr.io/@deno) on JSR
-- Everything under the namespace [@std](https://jsr.io/@std) on JSR
-
-> - Imports for standard specifications will be decided on a case by case basis.
-> - 3rd party libraries for testing will be decided on a case by case basis.
-
-We allow no additional third-party dependencies for JS, thus all code must be
-implemented.
-
-For modules that use Rust to compile to WASM, we allow the usage of third-party
-crates if necessary, but this will be considered on a case-by-case basis.
-
-Allowed test dependencies:
-
-- zod: `jsr:@zod/zod@^4`
-
-## WASM
-
-All wasm code is generated from the rust workspace in the [\_wasm](./_wasm)
-folder.
-
-To generate the wasm code:
-
-```sh
-deno task build:wasm
-```
-
-This will call the [build_wasm.ts](./_tools/build_wasm.ts) script and will place
-each generated lib in its respective package based on its prefix. See script for
-more details.
+The packages depend only on the Deno STD, packages under `@deno`, and
+[Standard Schema](https://standardschema.dev). See the
+[dependency policy](./CONTRIBUTING.md#dependencies) for details.
 
 ## Deprecation Policy
 
@@ -148,22 +119,11 @@ For deprecated functions and modules, and their replacement, see the
 
 ## Contributing
 
-To contribute, first open an issue to describe the addition. After getting
-feedback and approval, open a PR linking to the issue.
+Contributions are welcome. Open an issue to describe the addition before opening
+a pull request. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the process, the
+development setup, the dependency policy and how releases are made.
 
-Code that is copied from other places, must be credited and is only allowed if
-the license allows for it.
-
-## Workflows
-
-To bump versions and publish the packages to JSR, do the following:
-
-1. Trigger the manual GitHub action
-   [version bump](https://github.com/halvardssm/std-js/actions/workflows/version_bump.yml).
-2. Check the created PR, verify the changes, and merge.
-3. Create a [new release](https://github.com/halvardssm/std-js/releases/new),
-   with the tag name `release-[date]` (e.g. `release-2024.12.29`) and auto
-   generate release notes.
+Guidance for AI coding agents is in [AGENTS.md](./AGENTS.md).
 
 ## Acknowledgments
 

@@ -22,7 +22,7 @@
   },
   "tasks": {
     "fix": "deno task format && deno lint --fix",
-    "check": "deno task format:check && deno lint && deno check **/*.ts",
+    "check": "deno task format:check && deno lint && deno check --doc **/*.ts",
     "test": "RUST_BACKTRACE=1 deno test --unstable-http --unstable-webgpu --allow-all --parallel --coverage --trace-leaks",
     "test:inspect": "RUST_BACKTRACE=1 deno test --unstable-http --unstable-webgpu --allow-all --parallel --coverage --trace-leaks --inspect-wait",
     "cov:gen": "deno coverage coverage --lcov --output=cov.lcov",
