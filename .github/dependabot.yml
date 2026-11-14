@@ -1,46 +1,35 @@
 version: 2
-updates:
-  # Action versions in .github/workflows.
-  - package-ecosystem: github-actions
-    directory: /
+
+# All updates land in one weekly PR, across ecosystems.
+multi-ecosystem-groups:
+  dependencies:
     schedule:
       interval: weekly
-    groups:
-      github-actions:
-        patterns:
-          - "*"
     commit-message:
       prefix: chore
       include: scope
 
+updates:
+  # Action versions in .github/workflows.
+  - package-ecosystem: github-actions
+    directory: /
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies
+
   # JSR and npm imports in the root deno.json.
   - package-ecosystem: deno
     directory: /
-    schedule:
-      interval: weekly
-    groups:
-      deno:
-        patterns:
-          - "*"
-    commit-message:
-      prefix: chore
-      include: scope
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies
 
   # Rust crates in the _wasm workspace. A crate update changes the generated
   # wasm, so run `deno task build:wasm` on the PR and commit the artifacts,
   # otherwise `build:wasm:check` fails.
   - package-ecosystem: cargo
     directory: /_wasm
-    schedule:
-      interval: weekly
-    groups:
-      cargo:
-        patterns:
-          - "*"
+    patterns: ["*"]
+    multi-ecosystem-group: dependencies
     ignore:
       # Pinned to the exact version that @deno/wasmbuild requires. Update it
       # together with @deno/wasmbuild.
       - dependency-name: wasm-bindgen
-    commit-message:
-      prefix: chore
-      include: scope
