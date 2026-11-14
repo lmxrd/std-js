@@ -159,6 +159,8 @@ const cases: Record<StringFormat, { valid: string[]; invalid: string[] }> = {
       "joe.bloggs@[127.0.0.1]",
       "joe.bloggs@[IPv6:::1]",
       "a@[ipv6:2001:db8::1]",
+      "a".repeat(64) + "@example.com",
+      `"${"a".repeat(62)}"@example.com`,
     ],
     invalid: [
       "@b.co",
@@ -193,6 +195,8 @@ const cases: Record<StringFormat, { valid: string[]; invalid: string[] }> = {
       "a@[IPv6:1::2::3]",
       "a@[RFC-5322-domain-literal]",
       "[1.2.3.4]@iana.org",
+      "a".repeat(65) + "@example.com",
+      `"${"a".repeat(63)}"@example.com`,
     ],
   },
   "idn-email": {
@@ -207,6 +211,8 @@ const cases: Record<StringFormat, { valid: string[]; invalid: string[] }> = {
       "user@café.com",
       "𝕏@example.com",
       "a@[IPv6:::1]",
+      "a".repeat(64) + "@example.com",
+      "ü".repeat(32) + "@example.com",
     ],
     invalid: [
       "ü@",
@@ -221,6 +227,8 @@ const cases: Record<StringFormat, { valid: string[]; invalid: string[] }> = {
       "δοκιμή@example.com.",
       "δοκιμή@example..com",
       "a b@example.com",
+      "a".repeat(65) + "@example.com",
+      "ü".repeat(33) + "@example.com",
     ],
   },
 };

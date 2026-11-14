@@ -112,9 +112,14 @@ function isEmailDomain(domain: string, hostname: RegExp): boolean {
   return !domain.endsWith(".") && hostname.test(domain);
 }
 
+/** RFC 5321 section 4.5.3.1.1: the maximum length of a local part in octets. */
+const MAX_LOCAL_PART_OCTETS = 64;
+
+const encoder = new TextEncoder();
+
 /**
  * RFC 5321 `Mailbox` (or RFC 6531 with `idn`): a dot-string or quoted-string
- * local part, `@` and a domain.
+ * local part of at most 64 octets (UTF-8 for RFC 6531), `@` and a domain.
  */
 function isEmail(value: string, idn: boolean): boolean {
   // A domain never contains `@`, so the last one separates the two parts.
@@ -122,6 +127,7 @@ function isEmail(value: string, idn: boolean): boolean {
   if (at === -1) return false;
   const local = value.slice(0, at);
   const domain = value.slice(at + 1);
+  if (encoder.encode(local).length > MAX_LOCAL_PART_OCTETS) return false;
   const [dotString, quotedString, hostname] = idn
     ? [RFC6531_DOT_STRING, RFC6531_QUOTED_STRING, RFC5890_IDN_HOSTNAME]
     : [RFC5321_DOT_STRING, RFC5321_QUOTED_STRING, RFC1123_HOSTNAME];
