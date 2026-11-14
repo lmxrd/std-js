@@ -1,5 +1,5 @@
 {
-  "version": "0.2.0",
+  "version": "0.3.0",
   "name": "@stdx/collections",
   "description": "Commonly used utilities and data structures.",
   "exports": {
