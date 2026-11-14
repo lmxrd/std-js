@@ -20,7 +20,7 @@ jobs:
 
       # Installs deno and rust from mise.toml.
       - name: Set up mise
-        uses: jdx/mise-action@v4
+        uses: jdx/mise-action@v5
 
       - name: Format & Lint
         run: mise run check
