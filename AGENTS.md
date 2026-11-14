@@ -16,7 +16,7 @@ README.md and this file consistent with it.
 ## Quick reference
 
 ```sh
-deno task check             # format check (JS + Rust), lint and type-check
+deno task check             # format check (JS + Rust), lint, type-check (incl. JSDoc)
 deno task test              # full test suite with coverage
 deno task fix               # format (JS + Rust) and auto-fix lint rules
 deno task build:wasm        # rebuild wasm after changing Rust in _wasm/

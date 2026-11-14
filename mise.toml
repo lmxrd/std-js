@@ -12,10 +12,10 @@ rust = { version = "latest", components = ["rustfmt"], targets = [
 # --- Checks -----------------------------------------------------------------
 
 [tasks.check]
-description = "Format check, lint, and type-check"
+description = "Format check, lint, and type-check, including JSDoc examples"
 depends = ["format:check", "lint"]
 # The glob is quoted, so that deno expands it. The shell only matches one level.
-run = 'deno check "**/*.ts"'
+run = 'deno check --doc "**/*.ts"'
 
 [tasks."check:pre-commit"]
 description = "Checks to run before a commit: check, wasm parity, tests, and a dry run publish of uncommitted changes"

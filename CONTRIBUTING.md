@@ -25,13 +25,14 @@ mise install
 
 ## Tasks
 
-The tasks are defined in both [deno.json](./deno.json) and
+The tasks below are defined in both [deno.json](./deno.json) and
 [mise.toml](./mise.toml), so `deno task <name>` and `mise run <name>` do the
-same thing. CI runs them through mise. When you change a task, change it in both
-files.
+same thing. The combined tasks (`check:pre-commit`, `check:pre-push`) and the
+`publish` tasks only exist in `mise.toml`. CI runs the tasks through mise. When
+you change a task, change it in both files.
 
 ```sh
-deno task check             # format check (JS + Rust), lint and type-check
+deno task check             # format check (JS + Rust), lint, type-check (incl. JSDoc)
 deno task test              # run the tests with coverage
 deno task fix               # format (JS + Rust) and auto-fix lint rules
 deno task build:wasm        # build the wasm crates into each package's _wasm/
