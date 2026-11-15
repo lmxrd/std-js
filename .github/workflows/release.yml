@@ -1,0 +1,44 @@
+name: release
+permissions:
+  contents: write
+on:
+  push:
+    branches: [main]
+    paths: [Releases.md]
+  workflow_dispatch:
+jobs:
+  release:
+    name: tag and release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Create tag and GitHub release
+        env:
+          # A release created with the default GITHUB_TOKEN does not trigger
+          # other workflows, so use CI_TOKEN to trigger workspace publish.
+          GH_TOKEN: ${{ secrets.CI_TOKEN }}
+        run: |
+          # The newest release is the first `### <date>` heading in Releases.md.
+          version="$(grep -m1 -oP '^### \K\S+' Releases.md)"
+          if [ -z "$version" ]; then
+            echo "No release heading found in Releases.md" >&2
+            exit 1
+          fi
+          tag="release-$version"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "Tag $tag already exists; nothing to do."
+            exit 0
+          fi
+          # Release notes: the newest section of Releases.md, without its heading.
+          awk 'NR > 1 && /^### / { exit } NR > 1 { print }' Releases.md > notes.md
+          gh release create "$tag" \
+            --target "$GITHUB_SHA" \
+            --title "$version" \
+            --notes-file notes.md

@@ -162,10 +162,14 @@ Maintainers bump the versions and publish the packages to JSR as follows:
 
 1. Trigger the manual GitHub action
    [version bump](https://github.com/lmxrd/std-js/actions/workflows/version_bump.yml).
+   It bumps the packages changed since the latest `release-[date]` tag.
 2. Check the created PR, verify the changes, and merge.
-3. Create a [new release](https://github.com/lmxrd/std-js/releases/new), with
-   the tag name `release-[date]` (e.g. `release-2024.12.29`) and auto generate
-   release notes.
+3. Merging changes `Releases.md` on `main`, which triggers the
+   [release](https://github.com/lmxrd/std-js/actions/workflows/release.yml)
+   workflow. It tags the merge commit `release-[date]` (e.g.
+   `release-2026.11.14`, from the newest heading in `Releases.md`) and creates a
+   GitHub release with that section as its notes. Every release must be tagged,
+   or the next version bump includes the commits of this one again.
 4. Publishing the release triggers the
    [workspace publish](https://github.com/lmxrd/std-js/actions/workflows/workspace_publish.yml)
    workflow, which runs the checks and tests and publishes the packages to JSR.
