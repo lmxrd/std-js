@@ -1,3 +1,13 @@
+### 2026.11.15
+
+#### @stdx/database 0.2.1 (patch)
+
+- feat(database): add firstValues and firstRecord, and driver typed parameters
+
+#### @stdx/validation 0.1.5 (patch)
+
+- fix(validation): accept valid email, idn-email and ipv6 formats (#33)
+
 ### 2026.10.07
 
 #### @stdx/cli 0.1.2 (patch)
